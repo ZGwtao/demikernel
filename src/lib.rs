@@ -30,6 +30,9 @@ mod catpowder;
 #[cfg(feature = "catnap-libos")]
 mod catnap;
 
+#[cfg(feature = "catlions-libos")]
+mod catlions;
+
 pub use self::demikernel::libos::{name::LibOSName, LibOS};
 pub use crate::{
     inetstack::types::{MacAddress, Port16},
