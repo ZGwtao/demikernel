@@ -17,7 +17,7 @@ use crate::{
     runtime::scheduler::{
         page::{WakerPageRef, WakerRef},
         waker64::{WAKER_BIT_LENGTH, WAKER_BIT_LENGTH_SHIFT},
-        ScheduleResult, Task,
+        ScheduleResult, Task, RUN_NEW_TASKS_IMMEDIATELY,
     },
 };
 use ::bit_iter::BitIter;
@@ -78,10 +78,12 @@ impl TaskGroup {
 
         trace!("schedule(): name={:?}, idx={:?}", name, idx);
 
-        match self.run_task(idx) {
-            Some(task) => Some(ScheduleResult::Completed(task)),
-            None => Some(ScheduleResult::Scheduled(idx.into())),
+        if RUN_NEW_TASKS_IMMEDIATELY {
+            if let Some(task) = self.run_task(idx) {
+                return Some(ScheduleResult::Completed(task));
+            }
         }
+        Some(ScheduleResult::Scheduled(idx.into()))
     }
 
     pub fn get_task_mut(&mut self, idx: usize) -> Option<Pin<&mut Box<dyn Task>>> {

@@ -6,14 +6,8 @@
 //======================================================================================================================
 
 use crate::runtime::{conditional_yield_with_timeout, fail::Fail, SharedConditionVariable, SharedObject};
-use ::std::{
-    collections::{
-        vec_deque::{Iter, IterMut},
-        VecDeque,
-    },
-    ops::{Deref, DerefMut},
-    time::Duration,
-};
+use rust_alloc::collections::{vec_deque::{Iter, IterMut}, VecDeque};
+use core::{ops::{Deref, DerefMut}, time::Duration};
 
 //======================================================================================================================
 // Constants

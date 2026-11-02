@@ -10,7 +10,7 @@ use crate::{
     runtime::{fail::Fail, memory::DemiBuffer},
 };
 use ::libc::{EBADMSG, ENOTSUP};
-use ::std::net::Ipv4Addr;
+use ::core::net::Ipv4Addr;
 
 //======================================================================================================================
 // Constants

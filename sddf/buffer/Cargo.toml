@@ -1,0 +1,13 @@
+[package]
+name = "sddf-buffer"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[target.'cfg(target_os = "none")'.dependencies]
+sddf = { path = ".." }
+
+[dev-dependencies]
+demikernel = { path = "../..", default-features = false, features = ["catlions-libos"] }

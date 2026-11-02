@@ -18,10 +18,14 @@ use ::std::{
     time::{Duration, Instant},
 };
 
+#[cfg(not(target_os = "none"))]
 thread_local! {
     /// This is our shared sense of time. It is explicitly moved forward ONLY by the runtime and used to trigger time outs.
     static THREAD_TIME: SharedTimer = SharedTimer::default();
 }
+
+#[cfg(target_os = "none")]
+use crate::catlions::timer_storage::THREAD_TIME;
 
 //======================================================================================================================
 // Structures
@@ -97,6 +101,10 @@ impl SharedTimer {
         self.now
     }
 
+    fn next_deadline(&self) -> Option<Instant> {
+        self.heap.peek().map(|entry| entry.0.expiry)
+    }
+
     fn add_timeout(&mut self, expiry: Instant, waker: Waker) -> YieldPointId {
         let id = self.last_id;
         self.last_id.increment();
@@ -132,6 +140,11 @@ pub fn global_advance_clock(now: Instant) {
 /// Gets the current global time in the Demikernel system.
 pub fn global_get_time() -> Instant {
     THREAD_TIME.with(|s| s.now())
+}
+
+/// Returns the earliest outstanding coroutine timeout, if any.
+pub fn global_next_deadline() -> Option<Instant> {
+    THREAD_TIME.with(|s| s.next_deadline())
 }
 
 /// Blocks until the system time moves
@@ -241,7 +254,7 @@ impl Drop for YieldPoint {
 
 #[cfg(test)]
 mod tests {
-    use crate::runtime::timer::{global_advance_clock, wait};
+    use crate::runtime::timer::{global_advance_clock, global_next_deadline, global_set_time, wait, wait_until};
     use ::anyhow::Result;
     use futures::task::noop_waker_ref;
     use std::{
@@ -250,6 +263,23 @@ mod tests {
         task::Context,
         time::{Duration, Instant},
     };
+
+    #[test]
+    fn next_deadline_tracks_pending_timeouts() {
+        let now = Instant::now();
+        global_set_time(now);
+        let mut ctx = Context::from_waker(noop_waker_ref());
+        let early = wait_until(now + Duration::from_millis(10));
+        let late = wait_until(now + Duration::from_millis(20));
+        futures::pin_mut!(early, late);
+        assert!(Future::poll(Pin::new(&mut late), &mut ctx).is_pending());
+        assert!(Future::poll(Pin::new(&mut early), &mut ctx).is_pending());
+        assert_eq!(global_next_deadline(), Some(now + Duration::from_millis(10)));
+        global_advance_clock(now + Duration::from_millis(10));
+        assert_eq!(global_next_deadline(), Some(now + Duration::from_millis(20)));
+        global_advance_clock(now + Duration::from_millis(20));
+        assert_eq!(global_next_deadline(), None);
+    }
 
     #[test]
     fn test_timer() -> Result<()> {

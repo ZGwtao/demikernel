@@ -36,6 +36,11 @@ pub mod scheduler;
 pub mod task;
 mod waker64;
 
+#[cfg(all(target_os = "none", feature = "catlions-libos"))]
+pub(crate) use crate::catlions::scheduler::RUN_NEW_TASKS_IMMEDIATELY;
+#[cfg(not(all(target_os = "none", feature = "catlions-libos")))]
+pub(crate) const RUN_NEW_TASKS_IMMEDIATELY: bool = true;
+
 //======================================================================================================================
 // Exports
 //======================================================================================================================

@@ -1,0 +1,8 @@
+[package]
+name = "sddf"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+sel4-microkit = { path = "../../rust-seL4/crates/sel4-microkit" }

@@ -42,6 +42,12 @@ use libc::sockaddr_in;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 pub const CPU_DATA_CACHE_LINE_SIZE_IN_BYTES: usize = 64;
 
+#[cfg(all(target_arch = "aarch64", not(target_os = "none")))]
+pub const CPU_DATA_CACHE_LINE_SIZE_IN_BYTES: usize = 64;
+
+#[cfg(target_os = "none")]
+pub use crate::std_sel4::pal::*;
+
 const _: () = assert!(CPU_DATA_CACHE_LINE_SIZE_IN_BYTES.is_power_of_two());
 
 //======================================================================================================================

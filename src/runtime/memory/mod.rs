@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+#[cfg(not(feature = "catlions-core-buffer"))]
 mod buffer_pool;
+#[cfg(not(feature = "catlions-core-buffer"))]
 mod demibuffer;
+#[cfg(not(feature = "catlions-core-buffer"))]
 mod memory_pool;
 
 //======================================================================================================================
@@ -15,13 +18,18 @@ use crate::runtime::{
 };
 use ::arrayvec::ArrayVec;
 use ::libc::c_void;
-use ::std::{mem, ptr::NonNull};
+use ::std::ptr::NonNull;
+#[cfg(not(feature = "catlions-core-buffer"))]
+use ::std::mem;
 
 //======================================================================================================================
 // Exports
 //======================================================================================================================
 
+#[cfg(not(feature = "catlions-core-buffer"))]
 pub use self::{buffer_pool::*, demibuffer::*};
+#[cfg(feature = "catlions-core-buffer")]
+pub use sddf_buffer::DemiBuffer;
 
 //======================================================================================================================
 // Traits
@@ -117,6 +125,17 @@ pub fn clone_sgarray(sga: &demi_sgarray_t) -> Result<ArrayVec<DemiBuffer, DEMI_S
 
     let mut bufs: ArrayVec<DemiBuffer, DEMI_SGARRAY_MAXLEN> = ArrayVec::new();
     for i in 0..sga.num_segments as usize {
+        #[cfg(feature = "catlions-core-buffer")]
+        {
+            let segment = &sga.segments[i];
+            let token = NonNull::new(segment.reserved_metadata_ptr as *mut DemiBuffer)
+                .ok_or_else(|| Fail::new(libc::EINVAL, "demi_sgarray_t has invalid DemiBuffer token"))?;
+            let mut clone = unsafe { token.as_ref() }.clone();
+            check_demi_buf_limits(segment, &mut clone)?;
+            bufs.push(clone);
+        }
+        #[cfg(not(feature = "catlions-core-buffer"))]
+        {
         // Convert back to a DemiBuffer.
         let buf: DemiBuffer = convert_sgaseg_to_demi_buffer(&sga.segments[i])?;
         // Clone the DemiBuffer, this will recursively clone the entire chain.
@@ -125,6 +144,7 @@ pub fn clone_sgarray(sga: &demi_sgarray_t) -> Result<ArrayVec<DemiBuffer, DEMI_S
         // Don't drop buf, as it holds the same reference to the data as the sgarray (which should keep it).
         mem::forget(buf);
         bufs.push(clone);
+        }
     }
     Ok(bufs)
 }

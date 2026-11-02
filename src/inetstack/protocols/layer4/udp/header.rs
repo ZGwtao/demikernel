@@ -10,7 +10,7 @@ use crate::{
     runtime::{fail::Fail, memory::DemiBuffer},
 };
 use ::libc::EBADMSG;
-use ::std::{net::Ipv4Addr, slice::ChunksExact};
+use ::core::{net::Ipv4Addr, slice::ChunksExact};
 
 //======================================================================================================================
 // Constants
@@ -201,7 +201,7 @@ impl UdpHeader {
 mod test {
     use crate::inetstack::protocols::layer4::udp::header::*;
     use ::anyhow::Result;
-    use ::std::net::Ipv4Addr;
+    use ::core::net::Ipv4Addr;
 
     #[test]
     fn test_udp_header_serialization() -> Result<()> {

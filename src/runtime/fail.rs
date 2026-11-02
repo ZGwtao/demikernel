@@ -63,3 +63,10 @@ impl From<std::num::TryFromIntError> for Fail {
         Fail::new(libc::ERANGE, "integer conversion error")
     }
 }
+
+#[cfg(feature = "catlions-core-buffer")]
+impl From<sddf_buffer::BufferError> for Fail {
+    fn from(error: sddf_buffer::BufferError) -> Self {
+        Fail::new(libc::EINVAL, &error.to_string())
+    }
+}

@@ -8,7 +8,10 @@
 pub mod condition_variable;
 pub mod fail;
 pub mod limits;
+#[cfg(not(feature = "catlions-libos"))]
 pub mod logging;
+#[cfg(feature = "catlions-libos")]
+pub mod logging { pub fn initialize() {} }
 pub mod memory;
 pub mod network;
 pub mod queue;

@@ -5,8 +5,8 @@
 // Imports
 //======================================================================================================================
 
-use crate::{demikernel::config::Config, inetstack::types::MacAddress, runtime::fail::Fail};
-use ::std::{collections::HashMap, net::Ipv4Addr, time::Duration};
+use crate::{collections::HashMap, demikernel::config::Config, inetstack::types::MacAddress, runtime::fail::Fail};
+use ::core::{net::Ipv4Addr, time::Duration};
 
 //======================================================================================================================
 // Structures

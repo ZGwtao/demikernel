@@ -6,13 +6,8 @@
 //======================================================================================================================
 
 use crate::runtime::SharedObject;
-use ::std::{
-    collections::VecDeque,
-    future::Future,
-    ops::{Deref, DerefMut},
-    pin::Pin,
-    task::{Context, Poll, Waker},
-};
+use rust_alloc::collections::VecDeque;
+use core::{future::Future, ops::{Deref, DerefMut}, pin::Pin, task::{Context, Poll, Waker}};
 
 //======================================================================================================================
 // Constant

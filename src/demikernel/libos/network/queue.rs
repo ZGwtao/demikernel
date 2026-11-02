@@ -147,7 +147,10 @@ impl<T: NetworkTransport> SharedNetworkQueue<T> {
         } {
             Ok(result) => result,
             Err(e) => {
-                self.state_machine.closed();
+                // A failed TCP handshake does not close the listening socket.
+                if e.errno != libc::ETIMEDOUT {
+                    self.state_machine.closed();
+                }
                 return Err(e);
             },
         };

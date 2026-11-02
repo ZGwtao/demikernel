@@ -1,0 +1,11 @@
+[package]
+name = "catlions-pd"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+sddf = { path = "../../sddf" }
+demikernel = { path = "../..", default-features = false, features = ["catlions-libos"] }
+log = { version = "0.4", default-features = false }
+sel4-microkit = { path = "../../../rust-seL4/crates/sel4-microkit", features = ["alloc"] }

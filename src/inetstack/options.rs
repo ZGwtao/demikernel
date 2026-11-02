@@ -9,6 +9,7 @@ use crate::inetstack::{
     config::{ArpConfig, TcpConfig, UdpConfig},
     types::MacAddress,
 };
+#[cfg(not(feature = "catlions-libos"))]
 use ::rand::{thread_rng, Rng};
 use ::std::net::Ipv4Addr;
 
@@ -32,8 +33,14 @@ pub struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        let mut rng_seed = [0; 32];
-        thread_rng().fill(rng_seed.as_mut());
+        #[cfg(feature = "catlions-libos")]
+        let rng_seed = crate::catlions::random_seed();
+        #[cfg(not(feature = "catlions-libos"))]
+        let rng_seed = {
+            let mut seed = [0; 32];
+            thread_rng().fill(seed.as_mut());
+            seed
+        };
         Options {
             arp: ArpConfig::default(),
             my_ipv4_addr: Ipv4Addr::new(0, 0, 0, 0),

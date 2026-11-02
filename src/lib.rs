@@ -2,20 +2,47 @@
 // Licensed under the MIT license.
 
 #![deny(clippy::all)]
+#![cfg_attr(target_os = "none", no_std)]
+#![cfg_attr(target_os = "none", feature(prelude_import))]
 #![recursion_limit = "512"]
-#![feature(test)]
+#![cfg_attr(test, feature(test))]
 #![feature(allocator_api)]
 #![cfg_attr(target_os = "windows", feature(maybe_uninit_uninit_array))]
-#![feature(hash_extract_if)]
+
+#[cfg(not(target_os = "none"))]
+extern crate alloc as rust_alloc;
+#[cfg(target_os = "none")]
+#[macro_use]
+extern crate alloc as rust_alloc;
+#[cfg(target_os = "none")]
+extern crate self as std;
+#[cfg(target_os = "none")]
+mod no_std_prelude {
+    pub use core::prelude::rust_2021::*;
+    pub use rust_alloc::{boxed::Box, string::{String, ToString}, vec::Vec};
+}
+#[cfg(target_os = "none")]
+#[prelude_import]
+use no_std_prelude::*;
+#[cfg(target_os = "none")]
+pub use std_sel4::*;
+
+#[cfg(target_os = "none")]
+extern crate std_sel4_socket_types as socket2;
+#[cfg(target_os = "none")]
+extern crate std_sel4_libc as libc;
 
 mod collections;
 pub mod inetstack;
 mod pal;
+#[cfg(target_os = "none")]
+pub mod std_sel4;
 pub mod runtime;
 
 #[cfg(feature = "profiler")]
 pub mod perftools;
 
+#[cfg(test)]
 extern crate test;
 
 #[macro_use]
@@ -23,6 +50,9 @@ extern crate log;
 
 #[cfg(feature = "catnip-libos")]
 mod catnip;
+
+#[cfg(feature = "catlions-libos")]
+pub mod catlions;
 
 #[cfg(feature = "catpowder-libos")]
 mod catpowder;
@@ -42,8 +72,10 @@ pub use crate::{
 
 pub mod demikernel;
 
+#[cfg(feature = "mimalloc")]
 use mimalloc::MiMalloc;
 
+#[cfg(feature = "mimalloc")]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
