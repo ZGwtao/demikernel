@@ -11,9 +11,11 @@ pub mod network;
 use self::name::LibOSName;
 #[cfg(feature = "catnip-libos")]
 use crate::catnip::runtime::SharedDPDKRuntime;
+#[cfg(feature = "catlions-libos")]
+use crate::catlions::runtime::SddfRuntime;
 #[cfg(feature = "catpowder-libos")]
 use crate::catpowder::SharedCatpowderRuntime;
-#[cfg(any(feature = "catpowder-libos", feature = "catnip-libos"))]
+#[cfg(any(feature = "catpowder-libos", feature = "catnip-libos", feature = "catlions-libos"))]
 use crate::inetstack::SharedInetStack;
 #[cfg(feature = "profiler")]
 use crate::perftools::profiler::set_callback;
@@ -106,6 +108,14 @@ impl LibOS {
                 Self::NetworkLibOS(NetworkLibOSWrapper::Catnip(SharedNetworkLibOS::<SharedInetStack>::new(
                     runtime, inetstack,
                 )))
+            },
+            #[cfg(feature = "catlions-libos")]
+            LibOSName::Catlions => {
+                let layer1_endpoint = SddfRuntime::new(&config)?;
+                let inetstack = SharedInetStack::new(&config, runtime.clone(), layer1_endpoint)?;
+                Self::NetworkLibOS(NetworkLibOSWrapper::Catlions(
+                    SharedNetworkLibOS::<SharedInetStack>::new(runtime, inetstack),
+                ))
             },
             _ => panic!("unsupported libos"),
         };
