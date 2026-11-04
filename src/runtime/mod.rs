@@ -10,6 +10,8 @@ pub mod fail;
 pub mod limits;
 #[cfg(not(feature = "catlions-libos"))]
 pub mod logging;
+#[cfg(feature = "catlions-libos")]
+pub mod sel4_logging;
 pub mod memory;
 pub mod network;
 pub mod queue;

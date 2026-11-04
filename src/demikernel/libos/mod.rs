@@ -63,6 +63,8 @@ impl LibOS {
     pub fn new(libos_name: LibOSName, _perf_callback: Option<demi_callback_t>) -> Result<Self, Fail> {
         #[cfg(not(feature = "catlions-libos"))]
         logging::initialize();
+        #[cfg(feature = "catlions-libos")]
+        crate::runtime::sel4_logging::initialize();
 
         let config_path = match env::var("CONFIG_PATH") {
             Ok(config_path) => config_path,
