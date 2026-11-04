@@ -20,9 +20,12 @@ use crate::{
 };
 #[cfg(not(feature = "catlions-libos"))]
 use crate::runtime::logging::{self, CallbackLogWriter};
+#[cfg(feature = "catlions-libos")]
+use crate::demikernel::catlions::socketaddr::{sockaddr_to_socketaddr, socketaddrv4_to_bytes, SOCKADDR_IN_LEN};
 #[cfg(not(feature = "catlions-libos"))]
 use ::flexi_logger::Logger;
 use ::libc::{c_int, c_void, sockaddr};
+#[cfg(not(feature = "catlions-libos"))]
 use ::socket2::SockAddr;
 use ::std::{
     cell::RefCell,
@@ -809,7 +812,7 @@ pub unsafe extern "C" fn demi_getsockopt(
 /// The `addr` argument must be a valid pointer to a `sockaddr` structure, and `addrlen` must be a valid pointer to a
 /// `Socklen` value that specifies the size of the `sockaddr` structure.
 #[no_mangle]
-pub unsafe extern "C" fn demi_getpeername(qd: c_int, addr: *mut SockAddr, addrlen: *mut Socklen) -> c_int {
+pub unsafe extern "C" fn demi_getpeername(qd: c_int, addr: *mut sockaddr, addrlen: *mut Socklen) -> c_int {
     trace!("demi_getpeername()");
 
     if addr.is_null() {
@@ -822,6 +825,7 @@ pub unsafe extern "C" fn demi_getpeername(qd: c_int, addr: *mut SockAddr, addrle
         return libc::EINVAL;
     }
 
+    #[cfg(not(feature = "catlions-libos"))]
     let expected_len = mem::size_of::<SockAddrIn>() as Socklen;
 
     if unsafe { *addrlen < expected_len } {
@@ -839,19 +843,22 @@ pub unsafe extern "C" fn demi_getpeername(qd: c_int, addr: *mut SockAddr, addrle
 
     match ret {
         Ok(sockaddr) => {
-            let result = socketaddrv4_to_sockaddr(&sockaddr);
-            let result_length = mem::size_of::<SockAddr>();
-            unsafe {
-                if (result_length as Socklen) < *addrlen {
-                    *addrlen = result_length as Socklen;
+            #[cfg(not(feature = "catlions-libos"))]
+            {
+                let result = socketaddrv4_to_sockaddr(&sockaddr);
+                unsafe {
+                    ptr::copy_nonoverlapping(&result as *const sockaddr, addr, 1);
+                    *addrlen = expected_len;
                 }
+            }
 
-                // Need to pass dst a as c_void pointer or else we get a stack-smashing error
-                ptr::copy_nonoverlapping(
-                    &result as *const sockaddr as *const c_void,
-                    addr as *mut c_void,
-                    *addrlen as usize,
-                );
+            #[cfg(feature = "catlions-libos")]
+            {
+                let bytes = socketaddrv4_to_bytes(sockaddr);
+                unsafe {
+                    ptr::copy_nonoverlapping(bytes.as_ptr(), addr.cast::<u8>(), bytes.len());
+                    *addrlen = expected_len;
+                }
             }
 
             0
@@ -877,6 +884,7 @@ fn do_syscall<T>(f: impl FnOnce(&mut LibOS) -> T) -> Result<T, Fail> {
     })
 }
 
+#[cfg(not(feature = "catlions-libos"))]
 fn sockaddr_to_socketaddr(saddr: *const sockaddr, size: Socklen) -> Result<SocketAddr, Fail> {
     let check_name_len = |len: usize, exact: bool| {
         if (size as usize) < len || (exact && size as usize != len) {
