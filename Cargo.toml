@@ -34,6 +34,7 @@ yaml-rust = { version = "0.4.5", optional = true }
 sddf-rs = { path = "../../sddf-rs", optional = true }
 sel4 = { path = "../rust-seL4/crates/sel4", optional = true }
 sel4-logging = { path = "../rust-seL4/crates/sel4-logging", optional = true }
+std-sel4 = { path = "../../std-sel4", optional = true }
 
 # Demikernel crates (published on crates.io).
 demikernel-dpdk-bindings = { version = "1.1.8", optional = true }
@@ -134,7 +135,7 @@ default = ["catnap-libos", "mimalloc"]
 catnap-libos = ["native-std"]
 catpowder-libos = ["native-std"]
 catnip-libos = ["libdpdk", "native-std"]
-catlions-libos = ["dep:sddf-rs", "dep:sel4", "dep:sel4-logging"]
+catlions-libos = ["dep:sddf-rs", "dep:sel4", "dep:sel4-logging", "dep:std-sel4"]
 native-std = [
     "dep:libc",
     "dep:eui48",
