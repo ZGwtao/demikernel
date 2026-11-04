@@ -13,6 +13,10 @@
 #[cfg(feature = "catlions-libos")]
 #[macro_use]
 extern crate alloc;
+#[cfg(feature = "catlions-libos")]
+extern crate self as libc;
+#[cfg(feature = "catlions-libos")]
+pub use pal::catlions::libc::*;
 // @gt Catlions runs on rust-seL4, where Rust's std is unavailable.
 // Keep common alloc types and macros available across Demikernel modules
 // so existing unqualified names need fewer changes during the no_std port.
