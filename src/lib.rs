@@ -3,7 +3,7 @@
 
 #![deny(clippy::all)]
 #![recursion_limit = "512"]
-#![feature(test)]
+#![cfg_attr(test, feature(test))]
 #![feature(allocator_api)]
 #![cfg_attr(target_os = "windows", feature(maybe_uninit_uninit_array))]
 #![feature(hash_extract_if)]
@@ -16,6 +16,7 @@ pub mod runtime;
 #[cfg(feature = "profiler")]
 pub mod perftools;
 
+#[cfg(test)]
 extern crate test;
 
 #[macro_use]
