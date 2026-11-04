@@ -19,7 +19,7 @@ use crate::{
     },
 };
 use ::arrayvec::ArrayVec;
-use ::socket2::{Domain, Type};
+use crate::runtime::network::socket::{Domain, Type};
 #[cfg(test)]
 use ::std::{collections::HashMap, hash::RandomState, net::Ipv4Addr, time::Duration};
 use consts::MAX_RECV_ITERS;

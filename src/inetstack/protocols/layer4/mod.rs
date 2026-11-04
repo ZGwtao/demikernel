@@ -37,7 +37,7 @@ use crate::{
     },
     timer, SocketOption,
 };
-use ::socket2::{Domain, Type};
+use crate::runtime::network::socket::{Domain, Type};
 use ::std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 #[cfg(test)]
 use ::std::{collections::HashMap, hash::RandomState, time::Duration};

@@ -19,7 +19,7 @@ use crate::runtime::{
 };
 use ::arrayvec::ArrayVec;
 use ::futures::{pin_mut, select_biased, FutureExt};
-use ::socket2::{Domain, Type};
+use crate::runtime::network::socket::{Domain, Type};
 use ::std::{
     any::Any,
     net::{SocketAddr, SocketAddrV4},

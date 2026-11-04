@@ -13,7 +13,7 @@ use crate::runtime::{
     SharedDemiRuntime,
 };
 use ::arrayvec::ArrayVec;
-use ::socket2::{Domain, Type};
+use crate::runtime::network::socket::{Domain, Type};
 use ::std::{
     fmt::Debug,
     net::{SocketAddr, SocketAddrV4},

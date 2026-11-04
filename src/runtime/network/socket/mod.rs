@@ -7,6 +7,13 @@
 
 pub mod option;
 pub mod state;
+#[cfg(feature = "catlions-libos")]
+mod types;
+
+#[cfg(feature = "catlions-libos")]
+pub use types::{Domain, Protocol, Type};
+#[cfg(not(feature = "catlions-libos"))]
+pub use socket2::{Domain, Protocol, Type};
 
 //======================================================================================================================
 // Imports

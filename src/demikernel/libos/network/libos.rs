@@ -28,7 +28,7 @@ use crate::{
 };
 use ::arrayvec::ArrayVec;
 use ::futures::FutureExt;
-use ::socket2::{Domain, Protocol, Type};
+use crate::runtime::network::socket::{Domain, Protocol, Type};
 use ::std::{
     mem,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
