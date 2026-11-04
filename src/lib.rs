@@ -45,8 +45,10 @@ pub use crate::{
 
 pub mod demikernel;
 
+#[cfg(all(feature = "mimalloc", not(feature = "catlions-libos")))]
 use mimalloc::MiMalloc;
 
+#[cfg(all(feature = "mimalloc", not(feature = "catlions-libos")))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 

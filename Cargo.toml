@@ -28,7 +28,7 @@ futures = "0.3.30"
 histogram = "0.11.0"
 libc = "0.2.159"
 log = "0.4.22"
-mimalloc = { version = "0.1.43", default-features = false }
+mimalloc = { version = "0.1.43", default-features = false, optional = true }
 rand = { version = "0.8.5", features = ["small_rng"] }
 slab = "0.4.9"
 socket2 = "0.5.7"
@@ -126,11 +126,12 @@ name = "tcp-ping-pong"
 path = "examples/rust/tcp-ping-pong.rs"
 
 [features]
-default = ["catnap-libos"]
+default = ["catnap-libos", "mimalloc"]
 catnap-libos = []
 catpowder-libos = []
 catnip-libos = ["libdpdk"]
 catlions-libos = ["dep:sddf-rs"]
+mimalloc = ["dep:mimalloc"]
 libdpdk = ["demikernel-dpdk-bindings"]
 libxdp = ["demikernel-xdp-bindings"]
 mlx4 = ["demikernel-dpdk-bindings/mlx4"]
