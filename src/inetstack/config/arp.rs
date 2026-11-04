@@ -27,23 +27,29 @@ pub struct ArpConfig {
 
 impl ArpConfig {
     pub fn new(config: &Config) -> Result<Self, Fail> {
-        if let Some(initial_values) = config.arp_table()? {
-            Ok(Self {
-                cache_ttl: config.arp_cache_ttl()?,
-                request_timeout: config.arp_request_timeout()?,
-                retry_count: config.arp_request_retries()?,
-                initial_values,
-                is_enabled: true,
-            })
-        } else {
-            warn!("disabling arp");
-            Ok(Self {
-                cache_ttl: Duration::ZERO,
-                request_timeout: Duration::ZERO,
-                retry_count: 0,
-                initial_values: HashMap::new(),
-                is_enabled: false,
-            })
+        #[cfg(feature = "catlions-libos")]
+        return Ok(Self::default());
+
+        #[cfg(not(feature = "catlions-libos"))]
+        {
+            if let Some(initial_values) = config.arp_table()? {
+                Ok(Self {
+                    cache_ttl: config.arp_cache_ttl()?,
+                    request_timeout: config.arp_request_timeout()?,
+                    retry_count: config.arp_request_retries()?,
+                    initial_values,
+                    is_enabled: true,
+                })
+            } else {
+                warn!("disabling arp");
+                Ok(Self {
+                    cache_ttl: Duration::ZERO,
+                    request_timeout: Duration::ZERO,
+                    retry_count: 0,
+                    initial_values: HashMap::new(),
+                    is_enabled: false,
+                })
+            }
         }
     }
 

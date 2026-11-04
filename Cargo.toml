@@ -32,7 +32,7 @@ rand = { version = "0.8.5", default-features = false, features = ["alloc", "smal
 slab = { version = "0.4.9", default-features = false }
 socket2 = "0.5.7"
 x86 = "0.52.0"
-yaml-rust = "0.4.5"
+yaml-rust = { version = "0.4.5", optional = true }
 sddf-rs = { path = "../../sddf-rs", optional = true }
 sel4 = { path = "../rust-seL4/crates/sel4", optional = true }
 sel4-logging = { path = "../rust-seL4/crates/sel4-logging", optional = true }
@@ -137,6 +137,7 @@ catnip-libos = ["libdpdk", "native-std"]
 catlions-libos = ["dep:sddf-rs", "dep:sel4", "dep:sel4-logging"]
 native-std = [
     "dep:eui48",
+    "dep:yaml-rust",
     "dep:flexi_logger",
     "anyhow/std",
     "arrayvec/std",
