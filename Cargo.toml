@@ -14,23 +14,22 @@ license-file = "LICENSE.txt"
 
 [dependencies]
 # Third-party crates.
-anyhow = "1.0.89"
-arrayvec = "0.7.6"
+anyhow = { version = "1.0.89", default-features = false }
+arrayvec = { version = "0.7.6", default-features = false }
 async-trait = "0.1.83"
 bit-iter = "1.2.0"
 cfg-if = "1.0.0"
-clap = "4.5.18"
 crc = "3.2.1"
 crossbeam-channel = "0.5.13"
 eui48 = "1.1.0"
 flexi_logger = "0.29.0"
-futures = "0.3.30"
+futures = { version = "0.3.30", default-features = false, features = ["alloc", "async-await"] }
 histogram = "0.11.0"
 libc = "0.2.159"
-log = "0.4.22"
+log = { version = "0.4.22", default-features = false }
 mimalloc = { version = "0.1.43", default-features = false, optional = true }
-rand = { version = "0.8.5", features = ["small_rng"] }
-slab = "0.4.9"
+rand = { version = "0.8.5", default-features = false, features = ["alloc", "small_rng"] }
+slab = { version = "0.4.9", default-features = false }
 socket2 = "0.5.7"
 x86 = "0.52.0"
 yaml-rust = "0.4.5"
@@ -38,7 +37,10 @@ sddf-rs = { path = "../../sddf-rs", optional = true }
 
 # Demikernel crates (published on crates.io).
 demikernel-dpdk-bindings = { version = "1.1.8", optional = true }
-demikernel-network-simulator = { version = "0.1.0" }
+
+[dev-dependencies]
+clap = "4.5.18"
+demikernel-network-simulator = "0.1.0"
 
 # Windows-specific dependencies.
 [target.'cfg(windows)'.dependencies]
@@ -127,10 +129,20 @@ path = "examples/rust/tcp-ping-pong.rs"
 
 [features]
 default = ["catnap-libos", "mimalloc"]
-catnap-libos = []
-catpowder-libos = []
-catnip-libos = ["libdpdk"]
+catnap-libos = ["native-std"]
+catpowder-libos = ["native-std"]
+catnip-libos = ["libdpdk", "native-std"]
 catlions-libos = ["dep:sddf-rs"]
+native-std = [
+    "anyhow/std",
+    "arrayvec/std",
+    "futures/std",
+    "futures/executor",
+    "log/std",
+    "rand/std",
+    "rand/std_rng",
+    "slab/std",
+]
 mimalloc = ["dep:mimalloc"]
 libdpdk = ["demikernel-dpdk-bindings"]
 libxdp = ["demikernel-xdp-bindings"]
