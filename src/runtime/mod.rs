@@ -8,6 +8,7 @@
 pub mod condition_variable;
 pub mod fail;
 pub mod limits;
+#[cfg(not(feature = "catlions-libos"))]
 pub mod logging;
 pub mod memory;
 pub mod network;

@@ -13,12 +13,14 @@ use crate::{
     },
     runtime::{
         fail::Fail,
-        logging::{self, CallbackLogWriter},
         types::{demi_args_t, demi_qresult_t, demi_qtoken_t, demi_sgarray_t},
         QToken,
     },
     SocketOption,
 };
+#[cfg(not(feature = "catlions-libos"))]
+use crate::runtime::logging::{self, CallbackLogWriter};
+#[cfg(not(feature = "catlions-libos"))]
 use ::flexi_logger::Logger;
 use ::libc::{c_int, c_void, sockaddr};
 use ::socket2::SockAddr;
@@ -40,6 +42,7 @@ thread_local! {
 #[allow(unused)]
 #[no_mangle]
 pub unsafe extern "C" fn demi_init(args: *const demi_args_t) -> c_int {
+    #[cfg(not(feature = "catlions-libos"))]
     let log_callback = if args.is_null() {
         None
     } else {
@@ -47,6 +50,7 @@ pub unsafe extern "C" fn demi_init(args: *const demi_args_t) -> c_int {
         args.log_callback
     };
 
+    #[cfg(not(feature = "catlions-libos"))]
     if let Some(log_callback) = log_callback {
         logging::custom_initialize(move || {
             Logger::try_with_env()
