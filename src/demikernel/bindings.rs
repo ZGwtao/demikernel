@@ -41,8 +41,8 @@ thread_local! {
 /// The `args` argument to this function must be valid and point to a `demi_args_t` structure.
 #[allow(unused)]
 #[no_mangle]
+#[cfg(not(feature = "catlions-libos"))]
 pub unsafe extern "C" fn demi_init(args: *const demi_args_t) -> c_int {
-    #[cfg(not(feature = "catlions-libos"))]
     let log_callback = if args.is_null() {
         None
     } else {
@@ -50,7 +50,6 @@ pub unsafe extern "C" fn demi_init(args: *const demi_args_t) -> c_int {
         args.log_callback
     };
 
-    #[cfg(not(feature = "catlions-libos"))]
     if let Some(log_callback) = log_callback {
         logging::custom_initialize(move || {
             Logger::try_with_env()

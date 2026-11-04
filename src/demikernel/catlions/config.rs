@@ -19,10 +19,6 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(_config_path: String) -> Result<Self, Fail> {
-        Err(Fail::new(libc::ENOSYS, "Catlions has no file-based configuration"))
-    }
-
     pub fn local_ipv4_addr(&self) -> Result<Ipv4Addr, Fail> {
         if self.local_ipv4_addr.is_unspecified() || self.local_ipv4_addr.is_broadcast() {
             return Err(Fail::new(libc::EINVAL, "Invalid IPv4 address"));

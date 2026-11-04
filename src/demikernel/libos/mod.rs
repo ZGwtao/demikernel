@@ -35,8 +35,9 @@ use crate::{
 };
 #[cfg(not(feature = "catlions-libos"))]
 use crate::runtime::logging;
+#[cfg(not(feature = "catlions-libos"))]
+use ::std::env;
 use ::std::{
-    env,
     net::{SocketAddr, SocketAddrV4},
     time::Duration,
 };
@@ -60,11 +61,9 @@ pub enum LibOS {
 //======================================================================================================================
 
 impl LibOS {
+    #[cfg(not(feature = "catlions-libos"))]
     pub fn new(libos_name: LibOSName, _perf_callback: Option<demi_callback_t>) -> Result<Self, Fail> {
-        #[cfg(not(feature = "catlions-libos"))]
         logging::initialize();
-        #[cfg(feature = "catlions-libos")]
-        crate::runtime::sel4_logging::initialize();
 
         let config_path = match env::var("CONFIG_PATH") {
             Ok(config_path) => config_path,
@@ -82,6 +81,13 @@ impl LibOS {
         };
 
         let config = Config::new(config_path)?;
+        Self::new_with_config(libos_name, _perf_callback, config)
+    }
+
+    pub fn new_with_config(libos_name: LibOSName, _perf_callback: Option<demi_callback_t>, config: Config) -> Result<Self, Fail> {
+        #[cfg(feature = "catlions-libos")]
+        crate::runtime::sel4_logging::initialize();
+
         #[allow(unused_mut)]
         let mut runtime = SharedDemiRuntime::default();
         // Instantiate LibOS.
