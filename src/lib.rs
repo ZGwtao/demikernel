@@ -2,11 +2,28 @@
 // Licensed under the MIT license.
 
 #![deny(clippy::all)]
+#![cfg_attr(feature = "catlions-libos", no_std)]
+#![cfg_attr(feature = "catlions-libos", feature(prelude_import))]
 #![recursion_limit = "512"]
 #![cfg_attr(test, feature(test))]
 #![feature(allocator_api)]
 #![cfg_attr(target_os = "windows", feature(maybe_uninit_uninit_array))]
 #![feature(hash_extract_if)]
+
+#[cfg(feature = "catlions-libos")]
+#[macro_use]
+extern crate alloc;
+// @gt Catlions runs on rust-seL4, where Rust's std is unavailable.
+// Keep common alloc types and macros available across Demikernel modules
+// so existing unqualified names need fewer changes during the no_std port.
+#[cfg(feature = "catlions-libos")]
+mod catlions_prelude {
+    pub use core::prelude::rust_2021::*;
+    pub use alloc::{boxed::Box, string::{String, ToString}, vec::Vec};
+}
+#[cfg(feature = "catlions-libos")]
+#[prelude_import]
+use catlions_prelude::*;
 
 mod collections;
 pub mod inetstack;
