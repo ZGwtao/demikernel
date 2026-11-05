@@ -24,6 +24,7 @@ eui48 = { version = "1.1.0", optional = true }
 flexi_logger = { version = "0.29.0", optional = true }
 futures = { version = "0.3.30", default-features = false, features = ["alloc", "async-await"] }
 libc = { version = "0.2.159", optional = true }
+libm = { version = "0.2.16", optional = true }
 log = { version = "0.4.22", default-features = false }
 mimalloc = { version = "0.1.43", default-features = false, optional = true }
 rand = { version = "0.8.5", default-features = false, features = ["alloc", "small_rng"] }
@@ -135,7 +136,7 @@ default = ["catnap-libos", "mimalloc"]
 catnap-libos = ["native-std"]
 catpowder-libos = ["native-std"]
 catnip-libos = ["libdpdk", "native-std"]
-catlions-libos = ["dep:sddf-rs", "dep:sel4", "dep:sel4-logging", "dep:std-sel4"]
+catlions-libos = ["dep:libm", "dep:sddf-rs", "dep:sel4", "dep:sel4-logging", "dep:std-sel4"]
 native-std = [
     "dep:libc",
     "dep:eui48",

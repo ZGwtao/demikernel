@@ -197,14 +197,24 @@ impl Cubic {
         if self.last_congestion_was_rto.get() {
             0.0
         } else {
-            (w_max * (1. - Self::BETA_CUBIC) / Self::C).cbrt()
+            let value = w_max * (1. - Self::BETA_CUBIC) / Self::C;
+            #[cfg(feature = "catlions-libos")]
+            let root = libm::cbrtf(value);
+            #[cfg(not(feature = "catlions-libos"))]
+            let root = value.cbrt();
+            root
         }
     }
 
     fn w_cubic(&self, w_max: f32, t: f32, k: f32) -> f32 {
         // While we store w_max in terms of bytes, we have pre-normalised it to units of MSS
         // for compatibility with RFC8312.
-        (Self::C) * (t - k).powi(3) + w_max
+        let x = t - k;
+        #[cfg(feature = "catlions-libos")]
+        let x_cubed = x * x * x;
+        #[cfg(not(feature = "catlions-libos"))]
+        let x_cubed = x.powi(3);
+        Self::C * x_cubed + w_max
     }
 
     fn w_est(&self, w_max: f32, t: f32, rtt: f32) -> f32 {
