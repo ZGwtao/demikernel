@@ -830,6 +830,8 @@ pub unsafe extern "C" fn demi_getpeername(qd: c_int, addr: *mut sockaddr, addrle
 
     #[cfg(not(feature = "catlions-libos"))]
     let expected_len = mem::size_of::<SockAddrIn>() as Socklen;
+    #[cfg(feature = "catlions-libos")]
+    let expected_len = SOCKADDR_IN_LEN as Socklen;
 
     if unsafe { *addrlen < expected_len } {
         warn!("demi_getpeername(): addrlen does not match size of SockAddrIn");
