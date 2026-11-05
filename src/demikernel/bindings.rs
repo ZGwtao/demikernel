@@ -21,7 +21,10 @@ use crate::{
 #[cfg(not(feature = "catlions-libos"))]
 use crate::runtime::logging::{self, CallbackLogWriter};
 #[cfg(feature = "catlions-libos")]
-use crate::demikernel::catlions::socketaddr::{sockaddr_to_socketaddr, socketaddrv4_to_bytes, SOCKADDR_IN_LEN};
+use crate::{
+    demikernel::catlions::socketaddr::{sockaddr_to_socketaddr, socketaddrv4_to_bytes, SOCKADDR_IN_LEN},
+    thread_local,
+};
 #[cfg(not(feature = "catlions-libos"))]
 use ::flexi_logger::Logger;
 use ::libc::{c_int, c_void, sockaddr};

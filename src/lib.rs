@@ -4,6 +4,7 @@
 #![deny(clippy::all)]
 #![cfg_attr(feature = "catlions-libos", no_std)]
 #![cfg_attr(feature = "catlions-libos", feature(prelude_import))]
+#![cfg_attr(feature = "catlions-libos", feature(thread_local))]
 #![recursion_limit = "512"]
 #![cfg_attr(test, feature(test))]
 #![feature(allocator_api)]
@@ -16,6 +17,7 @@ cfg_if::cfg_if! {
         extern crate alloc as rust_alloc;
         extern crate self as libc;
         extern crate std_sel4 as std;
+        use std::thread_local;
 
         pub use pal::catlions::libc::*;
     }

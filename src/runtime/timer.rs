@@ -9,6 +9,8 @@
 //======================================================================================================================
 use crate::{expect_some, runtime::SharedObject};
 use ::core::cmp::Reverse;
+#[cfg(feature = "catlions-libos")]
+use crate::thread_local;
 use ::std::{
     collections::BinaryHeap,
     future::Future,
