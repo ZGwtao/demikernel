@@ -17,7 +17,7 @@ use ::windows::Win32::Networking::WinSock::tcp_keepalive;
 //======================================================================================================================
 
 const DEFAULT_LINGER: Option<Duration> = None;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", feature = "catlions-libos"))]
 const DEFAULT_KEEP_ALIVE: bool = false;
 #[cfg(target_os = "windows")]
 const DEFAULT_KEEP_ALIVE: tcp_keepalive = tcp_keepalive {
