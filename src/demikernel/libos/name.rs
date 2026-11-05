@@ -5,8 +5,8 @@
 // Imports
 //======================================================================================================================
 
-use crate::runtime::fail::Fail;
-use ::std::env;
+#[cfg(not(feature = "catlions-libos"))]
+use {crate::runtime::fail::Fail, std::env};
 
 //======================================================================================================================
 // Structures
@@ -24,6 +24,7 @@ pub enum LibOSName {
 // Associated Functions
 //======================================================================================================================
 
+#[cfg(not(feature = "catlions-libos"))]
 impl LibOSName {
     pub fn from_env() -> Result<Self, Fail> {
         match env::var("LIBOS") {
