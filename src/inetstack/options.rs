@@ -9,6 +9,7 @@ use crate::inetstack::{
     config::{ArpConfig, TcpConfig, UdpConfig},
     types::MacAddress,
 };
+#[cfg(not(feature = "catlions-libos"))]
 use ::rand::{thread_rng, Rng};
 use ::std::net::Ipv4Addr;
 
@@ -32,7 +33,13 @@ pub struct Options {
 
 impl Default for Options {
     fn default() -> Self {
+        // @gt Random seed generator is provided by std, which relies on what's provided
+        //     by the host. While on rust-seL4, there's no such mechanism provided by
+        //     default, so disabling std while not generating random seed here.
+        //     (This can cause security issue, but harmless to functional correctness?)
+        #[allow(unused_mut)]
         let mut rng_seed = [0; 32];
+        #[cfg(not(feature = "catlions-libos"))]
         thread_rng().fill(rng_seed.as_mut());
         Options {
             arp: ArpConfig::default(),
