@@ -87,6 +87,11 @@ impl LibOS {
     pub fn new_with_config(libos_name: LibOSName, _perf_callback: Option<demi_callback_t>, config: Config) -> Result<Self, Fail> {
         #[cfg(feature = "catlions-libos")]
         crate::runtime::sel4_logging::initialize();
+        // @gt Should this be here?
+        #[cfg(feature = "catlions-libos")]
+        if sddf_rs::timer_init() != 0 {
+            return Err(Fail::new(libc::EIO, "sDDF timer config is invalid"));
+        }
 
         #[allow(unused_mut)]
         let mut runtime = SharedDemiRuntime::default();
