@@ -781,7 +781,7 @@ pub unsafe extern "C" fn demi_getsockopt(
                             // Note that the linger values are different types on different platforms.
                             #[cfg(target_os = "windows")]
                             l_linger: linger.as_secs() as u16,
-                            #[cfg(target_os = "linux")]
+                            #[cfg(any(target_os = "linux", feature = "catlions-libos"))]
                             l_linger: linger.as_secs() as i32,
                         },
                         None => Linger {
