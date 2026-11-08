@@ -398,7 +398,15 @@ impl DemiMemoryAllocator for Peer {
         self.layer3_endpoint.max_buffer_size_bytes()
     }
 
+    fn max_buffer_size_bytes_with_headroom(&self, headroom: usize) -> usize {
+        self.layer3_endpoint.max_buffer_size_bytes_with_headroom(headroom)
+    }
+
     fn allocate_demi_buffer(&self, size: usize) -> Result<DemiBuffer, Fail> {
         self.layer3_endpoint.allocate_demi_buffer(size)
+    }
+
+    fn allocate_demi_buffer_with_headroom(&self, size: usize, headroom: usize) -> Result<DemiBuffer, Fail> {
+        self.layer3_endpoint.allocate_demi_buffer_with_headroom(size, headroom)
     }
 }

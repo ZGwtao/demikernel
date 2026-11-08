@@ -12,7 +12,7 @@ use crate::{
     runtime::{
         fail::Fail,
         limits,
-        memory::{clone_sgarray, into_sgarray, sgaalloc, sgafree, DemiBuffer},
+        memory::{clone_sgarray, into_sgarray, sgaalloc, sgaalloc_with_headroom, sgafree, DemiBuffer},
         network::{
             socket::{option::SocketOption, SocketId},
             transport::NetworkTransport,
@@ -531,6 +531,10 @@ impl<T: NetworkTransport> SharedNetworkLibOS<T> {
 
     pub fn sgaalloc(&self, size: usize) -> Result<demi_sgarray_t, Fail> {
         sgaalloc(size, &self.transport)
+    }
+
+    pub fn sgaalloc_with_headroom(&self, size: usize, headroom: usize) -> Result<demi_sgarray_t, Fail> {
+        sgaalloc_with_headroom(size, headroom, &self.transport)
     }
 
     pub fn sgafree(&self, sga: demi_sgarray_t) -> Result<(), Fail> {

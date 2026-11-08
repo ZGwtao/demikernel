@@ -308,6 +308,19 @@ impl NetworkLibOSWrapper {
         }
     }
 
+    pub fn sgaalloc_with_headroom(&self, size: usize, headroom: usize) -> Result<demi_sgarray_t, Fail> {
+        match self {
+            #[cfg(feature = "catpowder-libos")]
+            NetworkLibOSWrapper::Catpowder(libos) => libos.sgaalloc_with_headroom(size, headroom),
+            #[cfg(feature = "catnap-libos")]
+            NetworkLibOSWrapper::Catnap(libos) => libos.sgaalloc_with_headroom(size, headroom),
+            #[cfg(feature = "catnip-libos")]
+            NetworkLibOSWrapper::Catnip(libos) => libos.sgaalloc_with_headroom(size, headroom),
+            #[cfg(feature = "catlions-libos")]
+            NetworkLibOSWrapper::Catlions(libos) => libos.sgaalloc_with_headroom(size, headroom),
+        }
+    }
+
     /// Releases a scatter-gather array.
     pub fn sgafree(&self, sga: demi_sgarray_t) -> Result<(), Fail> {
         match self {

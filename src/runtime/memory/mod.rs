@@ -32,8 +32,17 @@ pub trait DemiMemoryAllocator {
         u16::MAX as usize
     }
 
+    fn max_buffer_size_bytes_with_headroom(&self, headroom: usize) -> usize {
+        self.max_buffer_size_bytes().saturating_sub(headroom)
+    }
+
     fn allocate_demi_buffer(&self, size: usize) -> Result<DemiBuffer, Fail> {
         Ok(DemiBuffer::new(size as u16))
+    }
+
+    fn allocate_demi_buffer_with_headroom(&self, _size: usize, _headroom: usize) -> Result<DemiBuffer, Fail> {
+        // @gt Sanity check for other platforms who have no such implementations
+        Err(Fail::new(libc::ENOTSUP, "headroom allocation is unavailable"))
     }
 }
 
@@ -66,6 +75,7 @@ pub fn into_sgarray(buffers: ArrayVec<DemiBuffer, DEMI_SGARRAY_MAXLEN>) -> Resul
     Ok(sga)
 }
 
+/// Allocates payload segments with headroom chosen implicitly by the allocator.
 pub fn sgaalloc<M: DemiMemoryAllocator>(size: usize, mem_alloc: &M) -> Result<demi_sgarray_t, Fail> {
     if size == 0 {
         error!("sgaalloc(): cannot allocate zero-sized buffer");
@@ -90,6 +100,35 @@ pub fn sgaalloc<M: DemiMemoryAllocator>(size: usize, mem_alloc: &M) -> Result<de
     // If there is any remaining length, allocate a partial buffer.
     if remainder > 0 {
         bufs.push(mem_alloc.allocate_demi_buffer(remainder)?);
+    }
+
+    into_sgarray(bufs)
+}
+
+/// Allocates payload segments with the same explicit headroom before each segment.
+pub fn sgaalloc_with_headroom<M: DemiMemoryAllocator>(
+    size: usize,
+    headroom: usize,
+    mem_alloc: &M,
+) -> Result<demi_sgarray_t, Fail> {
+    if size == 0 {
+        return Err(Fail::new(libc::EINVAL, "cannot allocate zero-sized buffer"));
+    }
+
+    let max_buffer_size_bytes = mem_alloc.max_buffer_size_bytes_with_headroom(headroom);
+    if max_buffer_size_bytes == 0 || size > max_buffer_size_bytes * DEMI_SGARRAY_MAXLEN {
+        return Err(Fail::new(libc::EINVAL, "size exceeds headroom allocator capacity"));
+    }
+
+    let remainder = size % max_buffer_size_bytes;
+    let len = size / max_buffer_size_bytes;
+    let mut bufs: ArrayVec<DemiBuffer, DEMI_SGARRAY_MAXLEN> = ArrayVec::new();
+
+    for _ in 0..len {
+        bufs.push(mem_alloc.allocate_demi_buffer_with_headroom(max_buffer_size_bytes, headroom)?);
+    }
+    if remainder > 0 {
+        bufs.push(mem_alloc.allocate_demi_buffer_with_headroom(remainder, headroom)?);
     }
 
     into_sgarray(bufs)

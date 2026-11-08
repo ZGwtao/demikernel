@@ -283,10 +283,20 @@ impl LibOS {
         }
     }
 
+    /// Allocates payload buffers with headroom chosen implicitly by the LibOS allocator.
     pub fn sgaalloc(&mut self, size: usize) -> Result<demi_sgarray_t, Fail> {
         timer!("demikernel::sgaalloc");
         match self {
             LibOS::NetworkLibOS(libos) => libos.sgaalloc(size),
+        }
+    }
+
+    /// Allocates payload buffers with explicit headroom before each segment.
+    /// Returns `ENOTSUP` if the selected LibOS has no headroom allocator.
+    pub fn sgaalloc_with_headroom(&mut self, size: usize, headroom: usize) -> Result<demi_sgarray_t, Fail> {
+        timer!("demikernel::sgaalloc_with_headroom");
+        match self {
+            LibOS::NetworkLibOS(libos) => libos.sgaalloc_with_headroom(size, headroom),
         }
     }
 
