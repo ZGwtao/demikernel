@@ -33,6 +33,8 @@ use crate::runtime::libdpdk::{
     rte_errno, rte_mbuf, rte_mbuf_from_indirect, rte_pktmbuf_adj, rte_pktmbuf_clone, rte_pktmbuf_detach,
     rte_pktmbuf_free, rte_pktmbuf_prepend, rte_pktmbuf_trim,
 };
+#[cfg(feature = "catlions-libos")]
+use sddf_rs::SBuf;
 use crate::{
     pal::CPU_DATA_CACHE_LINE_SIZE_IN_BYTES,
     runtime::{
@@ -250,6 +252,8 @@ pub(super) enum Tag {
     Heap = 1,
     #[cfg(feature = "libdpdk")]
     Dpdk = 2,
+    #[cfg(feature = "catlions-libos")]
+    Sddf = 3,
 }
 
 impl Tag {
@@ -270,6 +274,8 @@ impl From<usize> for Tag {
             1 => Tag::Heap,
             #[cfg(feature = "libdpdk")]
             2 => Tag::Dpdk,
+            #[cfg(feature = "catlions-libos")]
+            3 => Tag::Sddf,
             _ => panic!("memory corruption in DemiBuffer pointer"),
         }
     }
@@ -472,6 +478,21 @@ impl DemiBuffer {
         }
     }
 
+    #[cfg(feature = "catlions-libos")]
+    /// Creates a `DemiBuffer` from a raw SBuf pointer (*mut SBuf).
+    // The SBuf's reference is donated to the DemiBuffer without acquiring another reference.
+    // The caller must provide a non-null pointer to a live, owned SBuf.
+    pub unsafe fn from_sddf(sbuf_ptr: *mut SBuf) -> Self {
+        // Convert the raw pointer into a NonNull and tag it as an sDDF buffer.
+        let temp = NonNull::new_unchecked(sbuf_ptr as *mut _);
+        let tagged = temp.with_addr(temp.addr() | Tag::Sddf);
+
+        DemiBuffer {
+            tagged_ptr: tagged,
+            _phantom: PhantomData,
+        }
+    }
+
     // ----------------
     // Public Functions
     // ----------------
@@ -488,6 +509,8 @@ impl DemiBuffer {
             },
             #[cfg(feature = "libdpdk")]
             Tag::Dpdk => false,
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => false,
         }
     }
 
@@ -498,6 +521,11 @@ impl DemiBuffer {
     #[cfg(feature = "libdpdk")]
     pub fn is_dpdk_allocated(&self) -> bool {
         self.get_tag() == Tag::Dpdk
+    }
+
+    #[cfg(feature = "catlions-libos")]
+    pub fn is_sddf_allocated(&self) -> bool {
+        self.get_tag() == Tag::Sddf
     }
 
     /// Returns the length of the data stored in the `DemiBuffer`.
@@ -571,6 +599,8 @@ impl DemiBuffer {
             Tag::Heap => self.heap_buf_into_direct(),
             #[cfg(feature = "libdpdk")]
             Tag::Dpdk => unsafe { self.dpdk_buf_into_direct() },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => self,
         }
     }
 
@@ -608,6 +638,16 @@ impl DemiBuffer {
                     warn!("adjust(): {}", cause);
                     return Err(Fail::new(libc::EINVAL, &cause));
                 }
+            },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => {
+                let metadata = self.as_metadata();
+                if nbytes > metadata.data_len as usize {
+                    return Err(Fail::new(libc::EINVAL, "tried to remove more bytes than are present"));
+                }
+                metadata.data_off += nbytes as u16;
+                metadata.pkt_len -= nbytes as u32;
+                metadata.data_len -= nbytes as u16;
             },
         }
 
@@ -650,6 +690,15 @@ impl DemiBuffer {
                     return Err(Fail::new(libc::EINVAL, &cause));
                 }
             },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => {
+                let md = self.as_metadata();
+                if nbytes > md.data_len as usize {
+                    return Err(Fail::new(libc::EINVAL, "tried to remove more bytes than are present"));
+                }
+                md.data_len -= nbytes as u16;
+                md.pkt_len -= nbytes as u32;
+            },
         }
 
         Ok(())
@@ -688,6 +737,25 @@ impl DemiBuffer {
 
                     return Err(Fail::new(libc::EINVAL, &cause));
                 }
+            },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => {
+                if nbytes > self.headroom() as usize {
+                    return Err(Fail::new(libc::EINVAL, "insufficient headroom"));
+                }
+
+                let in_flight = !unsafe { self.get_ptr::<SBuf>().as_ref() }.is_returned();
+                if in_flight {
+                    // TCP retransmission may prepend a new header while sDDF still owns the previous frame.
+                    let mut copy = Self::new_with_headroom(self.len() as u16, self.headroom());
+                    copy.copy_from_slice(self);
+                    *self = copy;
+                }
+
+                let md = self.as_metadata();
+                md.data_off -= nbytes as u16;
+                md.data_len += nbytes as u16;
+                md.pkt_len += nbytes as u32;
             },
         }
         Ok(())
@@ -814,6 +882,19 @@ impl DemiBuffer {
         }
     }
 
+    /// Consumes the `DemiBuffer`, returning the contained sDDF buffer pointer.
+    // The SBuf takes the DemiBuffer's owned reference with it.
+    #[cfg(feature = "catlions-libos")]
+    pub fn into_sbuf(self) -> Option<*mut SBuf> {
+        if self.get_tag() == Tag::Sddf {
+            let sbuf = self.get_ptr::<SBuf>().as_ptr();
+            mem::forget(self);
+            Some(sbuf)
+        } else {
+            None
+        }
+    }
+
     // ------------------
     // Internal Functions
     // ------------------
@@ -883,6 +964,8 @@ impl DemiBuffer {
                 // Safety: The `mbuf` dereferences in this block are safe, as it is aligned and dereferenceable.
                 unsafe { (*mbuf).nb_segs != 1 }
             },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => false,
         }
     }
 }
@@ -1101,6 +1184,14 @@ impl Clone for DemiBuffer {
                 // Safety: from_mbuf is safe to call here as "mbuf_ptr_clone" is known to point to a valid MBuf.
                 DemiBuffer::from_mbuf(mbuf_ptr_clone)
             },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => {
+                // Each clone owns separate SBuf metadata, but shares the payload without exclusive write protection.
+                // Keep this simple for now; indirect SBufs would need an additional write ownership policy.
+                let original = unsafe { self.get_ptr::<SBuf>().as_ref() };
+                let raw = original.clone_raw(self.len() as u16, self.headroom());
+                unsafe { Self::from_sddf(raw) }
+            },
         }
     }
 }
@@ -1194,6 +1285,8 @@ impl Drop for DemiBuffer {
                     rte_pktmbuf_free(mbuf_ptr);
                 }
             },
+            #[cfg(feature = "catlions-libos")]
+            Tag::Sddf => unsafe { SBuf::drop_raw(self.get_ptr::<SBuf>().as_ptr()) },
         }
     }
 }
