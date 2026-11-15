@@ -8,13 +8,20 @@
 //======================================================================================================================
 
 use ::anyhow::Result;
-use ::clap::{Arg, Command};
-use ::demikernel::{demi_sgarray_t, runtime::types::demi_opcode_t, LibOS, LibOSName, QDesc};
-use ::std::{
-    net::SocketAddr,
-    slice,
-    str::FromStr,
-    time::{Duration, Instant},
+use ::demikernel::{demi_sgarray_t, runtime::types::demi_opcode_t, LibOS, QDesc};
+
+#[cfg(feature = "catlions-libos")]
+use {
+    ::core::{net::SocketAddr, slice, time::Duration},
+    ::sel4_microkit::debug_println as println,
+    ::std_sel4::time::Instant,
+};
+
+#[cfg(not(feature = "catlions-libos"))]
+use {
+    ::clap::{Arg, Command},
+    ::demikernel::LibOSName,
+    ::std::{net::SocketAddr, slice, str::FromStr, time::{Duration, Instant}},
 };
 
 #[cfg(target_os = "windows")]
@@ -29,6 +36,12 @@ pub const AF_INET: i32 = libc::AF_INET;
 #[cfg(target_os = "linux")]
 pub const SOCK_DGRAM: i32 = libc::SOCK_DGRAM;
 
+#[cfg(feature = "catlions-libos")]
+pub const AF_INET: i32 = 2;
+
+#[cfg(feature = "catlions-libos")]
+pub const SOCK_DGRAM: i32 = 2;
+
 #[derive(Debug)]
 pub struct ProgramArguments {
     local_addr: SocketAddr,
@@ -37,6 +50,7 @@ pub struct ProgramArguments {
     injection_rate_microseconds: u64,
 }
 
+#[cfg(not(feature = "catlions-libos"))]
 impl ProgramArguments {
     const DEFAULT_BUFSIZE_BYTES: usize = 1024;
     const DEFAULT_INJECTION_RATE_MICROSECONDS: u64 = 100;
@@ -164,10 +178,10 @@ impl Application {
     const LOG_INTERVAL_SECONDS: u64 = 5;
 
     pub fn new(mut libos: LibOS, args: &ProgramArguments) -> Result<Self> {
-        let local_addr = args.local_addr();
-        let remote_addr = args.remote_addr();
-        let bufsize_bytes = args.bufsize();
-        let injection_rate_microseconds = args.injection_rate();
+        let local_addr = args.local_addr;
+        let remote_addr = args.remote_addr;
+        let bufsize_bytes = args.bufsize_bytes;
+        let injection_rate_microseconds = args.injection_rate_microseconds;
 
         let sockqd = match libos.socket(AF_INET, SOCK_DGRAM, 1) {
             Ok(sockqd) => sockqd,
@@ -213,7 +227,7 @@ impl Application {
             }
 
             // Push packet.
-            if last_push_time.elapsed() > Duration::from_nanos(self.injection_rate_microseconds) {
+            if last_push_time.elapsed() > Duration::from_micros(self.injection_rate_microseconds) {
                 let sga = self.mksga(self.bufsize_bytes, 0x65)?;
 
                 let qt = match self.libos.pushto(self.sockqd, &sga, self.remote_addr) {
@@ -301,6 +315,20 @@ impl Drop for Application {
     }
 }
 
+pub fn run_with_libos(
+    libos: LibOS,
+    local_addr: SocketAddr,
+    remote_addr: SocketAddr,
+    bufsize_bytes: usize,
+    injection_rate_microseconds: u64,
+) -> Result<()> {
+    Application::new(
+        libos,
+        &ProgramArguments { local_addr, remote_addr, bufsize_bytes, injection_rate_microseconds },
+    )?.run()
+}
+
+#[cfg(not(feature = "catlions-libos"))]
 fn main() -> Result<()> {
     let args = ProgramArguments::new()?;
     let libos_name = match LibOSName::from_env() {

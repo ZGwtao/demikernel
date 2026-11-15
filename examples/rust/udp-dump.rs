@@ -8,12 +8,20 @@
 //======================================================================================================================
 
 use ::anyhow::Result;
-use ::clap::{Arg, Command};
-use ::demikernel::{runtime::types::demi_opcode_t, LibOS, LibOSName, QDesc};
-use ::std::{
-    net::SocketAddr,
-    str::FromStr,
-    time::{Duration, Instant},
+use ::demikernel::{runtime::types::demi_opcode_t, LibOS, QDesc};
+
+#[cfg(feature = "catlions-libos")]
+use {
+    ::core::{net::SocketAddr, time::Duration},
+    ::sel4_microkit::debug_println as println,
+    ::std_sel4::time::Instant,
+};
+
+#[cfg(not(feature = "catlions-libos"))]
+use {
+    ::clap::{Arg, Command},
+    ::demikernel::LibOSName,
+    ::std::{net::SocketAddr, str::FromStr, time::{Duration, Instant}},
 };
 
 #[cfg(target_os = "windows")]
@@ -28,11 +36,18 @@ pub const AF_INET: i32 = libc::AF_INET;
 #[cfg(target_os = "linux")]
 pub const SOCK_DGRAM: i32 = libc::SOCK_DGRAM;
 
+#[cfg(feature = "catlions-libos")]
+pub const AF_INET: i32 = 2;
+
+#[cfg(feature = "catlions-libos")]
+pub const SOCK_DGRAM: i32 = 2;
+
 #[derive(Debug)]
 struct ProgramArguments {
     local_addr: SocketAddr,
 }
 
+#[cfg(not(feature = "catlions-libos"))]
 impl ProgramArguments {
     const DEFAULT_LOCAL_IPV4_ADDR: &'static str = "127.0.0.1:12345";
 
@@ -78,7 +93,7 @@ impl Application {
     const LOG_INTERVAL_SECONDS: u64 = 5;
 
     pub fn new(mut libos: LibOS, args: &ProgramArguments) -> Result<Self> {
-        let addr = args.local_addr();
+        let addr = args.local_addr;
         let sockqd = match libos.socket(AF_INET, SOCK_DGRAM, 0) {
             Ok(sockqd) => sockqd,
             Err(e) => anyhow::bail!("failed to create socket: {:?}", e),
@@ -148,6 +163,11 @@ impl Drop for Application {
     }
 }
 
+pub fn run_with_libos(libos: LibOS, local_addr: SocketAddr) -> Result<()> {
+    Application::new(libos, &ProgramArguments { local_addr })?.run()
+}
+
+#[cfg(not(feature = "catlions-libos"))]
 fn main() -> Result<()> {
     let args = ProgramArguments::new()?;
     let libos_name = match LibOSName::from_env() {

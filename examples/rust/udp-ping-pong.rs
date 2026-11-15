@@ -6,8 +6,21 @@
 //======================================================================================================================
 
 use ::anyhow::Result;
-use ::demikernel::{demi_sgarray_t, runtime::types::demi_opcode_t, LibOS, LibOSName, QDesc};
-use ::std::{env, net::SocketAddr, slice, str::FromStr, time::Duration};
+use ::demikernel::{demi_sgarray_t, runtime::types::demi_opcode_t, LibOS, QDesc};
+
+#[cfg(feature = "catlions-libos")]
+use {
+    ::core::{net::SocketAddr, slice, time::Duration},
+    ::demikernel::ETIMEDOUT,
+    ::sel4_microkit::debug_println as println,
+};
+
+#[cfg(not(feature = "catlions-libos"))]
+use {
+    ::demikernel::LibOSName,
+    ::libc::ETIMEDOUT,
+    ::std::{env, net::SocketAddr, slice, str::FromStr, time::Duration},
+};
 
 #[cfg(target_os = "windows")]
 pub const AF_INET: i32 = windows::Win32::Networking::WinSock::AF_INET.0 as i32;
@@ -20,6 +33,12 @@ pub const AF_INET: i32 = libc::AF_INET;
 
 #[cfg(target_os = "linux")]
 pub const SOCK_DGRAM: i32 = libc::SOCK_DGRAM;
+
+#[cfg(feature = "catlions-libos")]
+pub const AF_INET: i32 = 2;
+
+#[cfg(feature = "catlions-libos")]
+pub const SOCK_DGRAM: i32 = 2;
 
 //======================================================================================================================
 // Constants
@@ -114,7 +133,7 @@ impl UdpServer {
                 Ok(qr) if qr.qr_opcode == demi_opcode_t::DEMI_OPC_POP => unsafe { qr.qr_value.sga },
                 Ok(_) => anyhow::bail!("unexpected result"),
                 // If we haven't received a message in the last 60 seconds, we can assume that the client is done.
-                Err(e) if e.errno == libc::ETIMEDOUT => break,
+                Err(e) if e.errno == ETIMEDOUT => break,
                 Err(e) => anyhow::bail!("operation failed: {:?}", e),
             };
 
@@ -187,7 +206,7 @@ impl UdpClient {
                     Ok(qr) if qr.qr_opcode == demi_opcode_t::DEMI_OPC_POP => break unsafe { qr.qr_value.sga },
                     Ok(_) => anyhow::bail!("unexpected result"),
                     // Retry if we didn't receive a response in a second.
-                    Err(e) if e.errno == libc::ETIMEDOUT => {
+                    Err(e) if e.errno == ETIMEDOUT => {
                         println!("Did not receive a response to last request in 1 second. Retrying ...");
                         continue;
                     },
@@ -221,6 +240,7 @@ impl Drop for UdpClient {
     }
 }
 
+#[cfg(not(feature = "catlions-libos"))]
 fn usage(program_name: &String) {
     println!("Usage: {} MODE local remote\n", program_name);
     println!("Modes:\n");
@@ -228,6 +248,15 @@ fn usage(program_name: &String) {
     println!("  --server    Run program in server mode.");
 }
 
+pub fn run_with_libos(libos: LibOS, local_addr: SocketAddr, remote_addr: SocketAddr, client: bool) -> Result<()> {
+    if client {
+        UdpClient::new(libos)?.run(local_addr, remote_addr, FILL_CHAR, BUFSIZE_BYTES, NUM_PINGS)
+    } else {
+        UdpServer::new(libos)?.run(local_addr, remote_addr, FILL_CHAR)
+    }
+}
+
+#[cfg(not(feature = "catlions-libos"))]
 pub fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
