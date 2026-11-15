@@ -8,15 +8,32 @@
 //======================================================================================================================
 
 use ::anyhow::Result;
-use ::clap::{Arg, Command};
-use ::demikernel::{runtime::types::demi_opcode_t, LibOS, LibOSName, QDesc};
+use ::demikernel::{runtime::types::demi_opcode_t, demi_sgarray_t, LibOS, QDesc};
+
+#[cfg(feature = "catlions-libos")]
+use {
+    ::alloc::vec::Vec,
+    ::core::{net::SocketAddr, time::Duration},
+    ::sel4_microkit::debug_println as println,
+    ::std_sel4::time::Instant,
+};
+
+#[cfg(not(feature = "catlions-libos"))]
+use {
+    ::clap::{Arg, Command},
+    ::demikernel::LibOSName,
+    ::std::{
+        net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+        str::FromStr,
+        time::{Duration, Instant},
+    },
+};
+
 #[cfg(target_os = "linux")]
 use ::std::mem;
-use ::std::{
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
-    str::FromStr,
-    time::{Duration, Instant},
-};
+
+#[cfg(target_os = "windows")]
+use windows::Win32::Networking::WinSock::SOCKADDR_IN;
 
 #[cfg(target_os = "windows")]
 pub const AF_INET: windows::Win32::Networking::WinSock::ADDRESS_FAMILY = windows::Win32::Networking::WinSock::AF_INET;
@@ -27,14 +44,17 @@ pub const AF_INET_VALUE: i32 = AF_INET.0 as i32;
 #[cfg(target_os = "windows")]
 pub const SOCK_DGRAM: i32 = windows::Win32::Networking::WinSock::SOCK_DGRAM.0 as i32;
 
-#[cfg(target_os = "windows")]
-use windows::Win32::Networking::WinSock::SOCKADDR_IN;
-
 #[cfg(target_os = "linux")]
 pub const AF_INET_VALUE: i32 = libc::AF_INET;
 
 #[cfg(target_os = "linux")]
 pub const SOCK_DGRAM: i32 = libc::SOCK_DGRAM;
+
+#[cfg(feature = "catlions-libos")]
+pub const AF_INET_VALUE: i32 = 2;
+
+#[cfg(feature = "catlions-libos")]
+pub const SOCK_DGRAM: i32 = 2;
 
 //======================================================================================================================
 // Constants
@@ -47,6 +67,7 @@ pub struct ProgramArguments {
     local_addr: SocketAddr,
 }
 
+#[cfg(not(feature = "catlions-libos"))]
 impl ProgramArguments {
     const DEFAULT_LOCAL_IPV4_ADDR: &'static str = "127.0.0.1:12345";
 
@@ -92,7 +113,7 @@ impl Application {
     const LOG_INTERVAL_SECONDS: u64 = 5;
 
     pub fn new(mut libos: LibOS, args: &ProgramArguments) -> Result<Self> {
-        let local_addr = args.local_addr();
+        let local_addr = args.local_addr;
         let sockqd = match libos.socket(AF_INET_VALUE, SOCK_DGRAM, 0) {
             Ok(sockqd) => sockqd,
             Err(e) => anyhow::bail!("failed to create socket: {:?}", e),
@@ -148,8 +169,8 @@ impl Application {
                 demi_opcode_t::DEMI_OPC_POP => {
                     let sockqd = qr.qr_qd.into();
                     let sga = unsafe { qr.qr_value.sga };
-                    let saddr = match Self::sockaddr_to_socketaddrv4(&unsafe { qr.qr_value.sga.sockaddr_src }) {
-                        Ok(saddr) => SocketAddr::from(saddr),
+                    let saddr = match Self::source_addr(&sga) {
+                        Ok(saddr) => saddr,
                         Err(e) => {
                             // If error, free scatter-gather array.
                             if let Err(e) = self.libos.sgafree(sga) {
@@ -194,6 +215,19 @@ impl Application {
         }
     }
 
+    fn source_addr(sga: &demi_sgarray_t) -> Result<SocketAddr> {
+        let raw_addr = sga.sockaddr_src;
+        #[cfg(feature = "catlions-libos")]
+        {
+            demikernel::demikernel::catlions::socketaddr::sockaddr_to_socketaddr(&raw_addr, 16)
+                .map_err(|e| anyhow::anyhow!("{:?}", e))
+        }
+        #[cfg(not(feature = "catlions-libos"))]
+        {
+            Self::sockaddr_to_socketaddrv4(&raw_addr).map(SocketAddr::from)
+        }
+    }
+
     #[cfg(target_os = "linux")]
     pub fn sockaddr_to_socketaddrv4(saddr: *const libc::sockaddr) -> Result<SocketAddrV4> {
         // TODO: Change the logic below and rename this function once we support V6 addresses as well.
@@ -233,6 +267,11 @@ impl Drop for Application {
     }
 }
 
+pub fn run_with_libos(libos: LibOS, local_addr: SocketAddr) -> Result<()> {
+    Application::new(libos, &ProgramArguments { local_addr })?.run()
+}
+
+#[cfg(not(feature = "catlions-libos"))]
 fn main() -> Result<()> {
     let args = ProgramArguments::new()?;
     let libos_name = match LibOSName::from_env() {
